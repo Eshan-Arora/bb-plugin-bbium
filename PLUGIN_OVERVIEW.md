@@ -16,6 +16,7 @@ In hint mode, `Backspace` removes the last letter and `Esc` closes hints. Button
 ## Settings
 
 - **Vim keys** - turn all keys off.
+- **Disabled keys** - keys bbium leaves to bb and other plugins, for example `jk` when the sidebar switches threads with `j` and `k`.
 - **Hint characters** - the letters used for labels, home row first.
 - **Scroll step** - pixels per `j` and `k`.
 - **Hint theme** - keycap chips in bb's own style (default), Vimium yellow, the bb accent color, or mono. All but Vimium follow light and dark mode.

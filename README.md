@@ -17,7 +17,7 @@ Keys work when focus is outside a text field. While the composer has focus, it s
 | Key        | Action                                                       |
 | ---------- | ------------------------------------------------------------ |
 | `f`        | Show hints, then type a label to click or focus that element |
-| `j` / `k`  | Scroll down / up                                             |
+| `j` / `k`  | Scroll down / up (unless turned off in `disabledKeys`)       |
 | `d` / `u`  | Scroll half a screen down / up                               |
 | `gg` / `G` | Scroll to top / bottom                                       |
 | `i`        | Focus the composer                                           |
@@ -40,6 +40,7 @@ Changes apply live, no reload.
 | Setting          | Default          | Meaning                                                                                                  |
 | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------- |
 | `vimKeys`        | `true`           | Turn all keys on or off                                                                                  |
+| `disabledKeys`   | empty            | Keys bbium leaves alone, any of `f i j k d u g G`. `jk` lets the sidebar switch threads with `j`/`k`     |
 | `hintCharacters` | `sadfjklewcmpgh` | Label letters, home row first                                                                            |
 | `scrollStep`     | `70`             | Pixels per `j`/`k`                                                                                       |
 | `theme`          | `keycap`         | `keycap` bb-style key chips, `vimium` yellow, `bb` app accent, `mono` (all but vimium follow light/dark) |

@@ -7,6 +7,7 @@ description: Configure the Bbium plugin - Vimium-style keys in bb (f hints, j/k 
 
 Bbium adds keyboard control to the bb app. Keys work when focus is outside a text field (`Esc` leaves the composer):
 `f` hints, `j`/`k` scroll, `d`/`u` half a screen, `gg`/`G` top and bottom, `i` composer.
+Keys listed in `disabledKeys` are left to bb and other plugins (e.g. `jk` for thread switching in the Kuri sidebar).
 
 ## Read and change settings
 
@@ -14,6 +15,7 @@ Bbium adds keyboard control to the bb app. Keys work when focus is outside a tex
 bb plugin config bbium                         # show all values
 bb plugin config bbium set theme bb
 bb plugin config bbium set scrollStep 120
+bb plugin config bbium set disabledKeys jk     # leave j/k to the sidebar
 bb plugin config bbium set customCss '[data-bbium-root] { --bbium-font-size: 13px; }'
 bb plugin config bbium unset customCss         # back to default
 ```
@@ -23,6 +25,7 @@ Changes apply live in every open bb window. No reload.
 | Key              | Type    | Default          | Meaning                                                                                                                                                              |
 | ---------------- | ------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vimKeys`        | boolean | `true`           | Turn all keys on or off                                                                                                                                              |
+| `disabledKeys`   | string  | empty            | Keys bbium does not handle, any of `f i j k d u g G` (case matters). Other characters are dropped                                                                     |
 | `hintCharacters` | string  | `sadfjklewcmpgh` | Label letters, home row first. Non a-z letters are dropped; fewer than 2 = default                                                                                   |
 | `scrollStep`     | number  | `70`             | Pixels per `j`/`k` (max 2000)                                                                                                                                        |
 | `theme`          | select  | `keycap`         | `keycap` bb-style key chips (typed letters in the accent color), `vimium` yellow, `bb` app accent, `mono` text color on background; all but vimium follow light/dark |
