@@ -16,7 +16,24 @@ export const DEFAULT_SCROLL_STEP = 70;
 const MAX_SCROLL_STEP = 2000;
 export const G_TIMEOUT_MS = 800;
 
-export type Config = { enabled: boolean; chars: string; scrollStep: number; theme: Theme; customCss: string };
+export type Config = {
+  enabled: boolean;
+  chars: string;
+  scrollStep: number;
+  theme: Theme;
+  customCss: string;
+  /** Normal-mode keys bbium leaves alone, e.g. "jk" so another plugin can use them. */
+  disabledKeys: string;
+};
+
+// Every normal-mode key; case matters (g vs G).
+const NORMAL_KEYS = "fijkdugG";
+
+/** Unique normal-mode keys from the setting; anything else is dropped. */
+export function parseDisabledKeys(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  return [...new Set(raw)].filter((c) => NORMAL_KEYS.includes(c)).join("");
+}
 
 /** Lowercase, unique a-z characters; falls back to the default below 2. */
 export function parseChars(raw: unknown): string {
@@ -34,6 +51,7 @@ export function parseSettings(values: Record<string, unknown> | undefined): Conf
     scrollStep: Number.isFinite(step) && step > 0 ? Math.min(Math.round(step), MAX_SCROLL_STEP) : DEFAULT_SCROLL_STEP,
     theme: parseTheme(values?.theme),
     customCss: typeof values?.customCss === "string" ? values.customCss : "",
+    disabledKeys: parseDisabledKeys(values?.disabledKeys),
   };
 }
 
@@ -48,15 +66,18 @@ type KeyInput = Pick<KeyboardEvent, "key" | "altKey" | "metaKey" | "ctrlKey" | "
  * Normal-mode routing without DOM access. `lastG` is the timestamp of a
  * pending first `g` (0 = none); any other key except a bare modifier cancels
  * it. `typing` = focus is in a text field or a typeahead popup. `handled` =
- * the key belongs to bbium and must not reach bb or the page.
+ * the key belongs to bbium and must not reach bb or the page. A key in
+ * `disabled` is not ours: it passes through untouched.
  */
 export function routeKey(
   e: KeyInput,
   lastG: number,
   typing: boolean,
+  disabled = "",
 ): { action: Action | null; handled: boolean; lastG: number } {
   const ignore = { action: null, handled: false, lastG: MODIFIER_KEYS.has(e.key) ? lastG : 0 };
   if (typing || e.isComposing || e.metaKey || e.ctrlKey || e.altKey) return ignore;
+  if (e.key.length === 1 && disabled.includes(e.key)) return ignore;
   if (e.key === "g") {
     if (lastG && e.timeStamp - lastG < G_TIMEOUT_MS) return { action: { kind: "scroll", command: "top" }, handled: true, lastG: 0 };
     return { action: null, handled: true, lastG: e.timeStamp };
@@ -149,7 +170,7 @@ export function createKeys(): Keys {
     cancelPin();
     if (hints.active()) return hints.onKey(e);
     if (!config.enabled) return;
-    const route = routeKey(e, lastG, isTyping(e));
+    const route = routeKey(e, lastG, isTyping(e), config.disabledKeys);
     lastG = route.lastG;
     if (!route.handled) return;
     e.preventDefault();

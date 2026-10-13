@@ -10,6 +10,12 @@ export default async function plugin(bb: BbPluginApi) {
       description: "f hints, j/k and d/u scroll, gg/G top and bottom, i composer. Active when focus is outside a text field (press Esc in the composer).",
       default: true,
     },
+    disabledKeys: {
+      type: "string",
+      label: "Disabled keys",
+      description: "Keys bbium leaves to bb and other plugins, e.g. jk when the sidebar switches threads with j/k. Any of f i j k d u g G.",
+      default: "",
+    },
     hintCharacters: {
       type: "string",
       label: "Hint characters",

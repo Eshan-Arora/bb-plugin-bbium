@@ -95,3 +95,15 @@ test("pickComposer: ProseMirror first, then the user's column, then lowest", () 
     1,
   );
 });
+
+test("routeKey: disabled keys pass through, the rest still work", () => {
+  for (const k of ["j", "k"]) {
+    const r = routeKey(key(k), 0, false, "jk");
+    assert.equal(r.handled, false);
+    assert.equal(r.action, null);
+  }
+  assert.deepEqual(routeKey(key("d"), 0, false, "jk").action, { kind: "scroll", command: "halfDown" });
+  assert.deepEqual(routeKey(key("G"), 0, false, "jk").action, { kind: "scroll", command: "bottom" });
+  assert.deepEqual(routeKey(key("f"), 0, false, "jk").action, { kind: "hints" });
+  assert.equal(routeKey(key("j"), 1000, false, "jk").lastG, 0, "a disabled key still cancels a pending g");
+});

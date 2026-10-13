@@ -10,12 +10,19 @@ test("parseSettings: defaults for missing values", () => {
     scrollStep: DEFAULT_SCROLL_STEP,
     theme: "keycap",
     customCss: "",
+    disabledKeys: "",
   });
+});
+
+test("parseSettings: disabledKeys keeps unique normal-mode keys only", () => {
+  assert.equal(parseSettings({ disabledKeys: "jk" }).disabledKeys, "jk");
+  assert.equal(parseSettings({ disabledKeys: "j, k, x, j, G" }).disabledKeys, "jkG");
+  assert.equal(parseSettings({ disabledKeys: 5 }).disabledKeys, "");
 });
 
 test("parseSettings: keeps valid values", () => {
   const s = parseSettings({ vimKeys: false, hintCharacters: "ASDF", scrollStep: 120, theme: "bb", customCss: "x{}" });
-  assert.deepEqual(s, { enabled: false, chars: "asdf", scrollStep: 120, theme: "bb", customCss: "x{}" });
+  assert.deepEqual(s, { enabled: false, chars: "asdf", scrollStep: 120, theme: "bb", customCss: "x{}", disabledKeys: "" });
 });
 
 test("parseSettings: rejects bad values", () => {
