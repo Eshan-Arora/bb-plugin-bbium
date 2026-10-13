@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hintKey, labelSpot, makeLabels, readingOrder } from "./hints.ts";
+import { hintKey, labelSpot, makeLabels, readingOrder, spreadLabels, type LabelBox } from "./hints.ts";
 import { DEFAULT_CHARS, parseChars } from "./keys.ts";
 
 const prefixFree = (labels: string[]) =>
@@ -85,4 +85,55 @@ test("labelSpot: text targets keep the corner, icons get the label on their top 
   assert.deepEqual(labelSpot(r(100, 50), true), { x: 62, y: 100, mode: "edge" });
   // The centered label must stay inside the window.
   assert.deepEqual(labelSpot(r(0, 0, 10), true), { x: 12, y: 16, mode: "edge" });
+});
+
+const screen = { width: 1440, height: 900 };
+const hit = (a: LabelBox, b: LabelBox) =>
+  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+const moved = (boxes: LabelBox[]) =>
+  spreadLabels(boxes, screen).map((m, i) => ({ ...boxes[i], left: boxes[i].left + m.dx, top: boxes[i].top + m.dy }));
+const noOverlap = (boxes: LabelBox[]) => boxes.every((a, i) => boxes.every((b, j) => i === j || !hit(a, b)));
+
+test("spreadLabels: separate labels stay put", () => {
+  const boxes = [
+    { left: 10, top: 10, width: 26, height: 18 },
+    { left: 60, top: 10, width: 26, height: 18 },
+  ];
+  assert.deepEqual(spreadLabels(boxes, screen), [{ dx: 0, dy: 0 }, { dx: 0, dy: 0 }]);
+});
+
+test("spreadLabels: two icon buttons side by side (Snooze, Done) move apart by a few pixels", () => {
+  const out = moved([
+    { left: 248, top: 80, width: 26, height: 18 },
+    { left: 270, top: 80, width: 26, height: 18 },
+  ]);
+  assert.ok(noOverlap(out));
+  assert.equal(out[0].left, 248);
+  assert.ok(out[1].left - 270 <= 6, "shortest move, to the right");
+});
+
+test("spreadLabels: a row of overlapping labels spreads without any overlap", () => {
+  const boxes = Array.from({ length: 6 }, (_, i) => ({ left: 400 + i * 8, top: 300 + (i % 2) * 4, width: 26, height: 18 }));
+  assert.ok(noOverlap(moved(boxes)));
+});
+
+test("spreadLabels: same spot (nested targets) gets a second free spot", () => {
+  const out = moved([
+    { left: 60, top: 440, width: 26, height: 18 },
+    { left: 60, top: 440, width: 26, height: 18 },
+  ]);
+  assert.ok(noOverlap(out));
+});
+
+test("spreadLabels: a label off the top edge with no conflict is not moved", () => {
+  assert.deepEqual(spreadLabels([{ left: 10, top: -6, width: 26, height: 18 }], screen), [{ dx: 0, dy: 0 }]);
+});
+
+test("spreadLabels: moves stay inside the window", () => {
+  const out = moved([
+    { left: 1414, top: 0, width: 26, height: 18 },
+    { left: 1414, top: 0, width: 26, height: 18 },
+  ]);
+  assert.ok(noOverlap(out));
+  assert.ok(out.every((b) => b.left >= 0 && b.top >= 0 && b.left + b.width <= 1440));
 });

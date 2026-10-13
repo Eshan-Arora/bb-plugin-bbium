@@ -46,6 +46,53 @@ export function labelSpot(rect: Rect, iconOnly: boolean): Spot {
   return { x: Math.max(rect.left + rect.width / 2, 12), y: Math.max(rect.top, HALF_LABEL), mode: "edge" };
 }
 
+export type LabelBox = { left: number; top: number; width: number; height: number };
+
+const LABEL_GAP = 1;
+
+function overlaps(a: LabelBox, b: LabelBox): boolean {
+  return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+}
+
+/**
+ * Shift labels so none covers another. Nearby targets (Snooze next to Done,
+ * a toggle inside a sidebar row, Show more above a message toolbar) put their
+ * labels on the same pixels. In order, each label that hits a placed one moves
+ * the shortest distance to a free spot next to the labels it hits; a label
+ * with no free spot nearby stays put. Returns one offset per box.
+ */
+export function spreadLabels(boxes: LabelBox[], bounds: { width: number; height: number }): { dx: number; dy: number }[] {
+  const placed: LabelBox[] = [];
+  return boxes.map((box) => {
+    const free = (c: LabelBox) =>
+      c.left >= 0 && c.top >= 0 && c.left + c.width <= bounds.width && c.top + c.height <= bounds.height && !placed.some((p) => overlaps(c, p));
+    // The first spot may stick out of the window (edge labels); only a move must stay inside.
+    let best: LabelBox | null = placed.some((p) => overlaps(box, p)) ? null : box;
+    // Search outward: a spot beside one label can hit the next one.
+    let frontier = [box];
+    for (let round = 0; !best && round < 3 && frontier.length; round++) {
+      const next: LabelBox[] = [];
+      for (const from of frontier) {
+        for (const p of placed) {
+          if (!overlaps(from, p)) continue;
+          next.push(
+            { ...from, left: p.left + p.width + LABEL_GAP },
+            { ...from, left: p.left - from.width - LABEL_GAP },
+            { ...from, top: p.top + p.height + LABEL_GAP },
+            { ...from, top: p.top - from.height - LABEL_GAP },
+          );
+        }
+      }
+      const dist = (c: LabelBox) => Math.abs(c.left - box.left) + Math.abs(c.top - box.top);
+      for (const c of next) if (free(c) && (!best || dist(c) < dist(best))) best = c;
+      frontier = next.sort((a, b) => dist(a) - dist(b)).slice(0, 16);
+    }
+    const at = best ?? box;
+    placed.push(at);
+    return { dx: at.left - box.left, dy: at.top - box.top };
+  });
+}
+
 function isIconOnly(el: HTMLElement, rect: DOMRect): boolean {
   return rect.width <= 48 && rect.height <= 48 && !isEditable(el) && !el.textContent?.trim();
 }
@@ -274,6 +321,8 @@ type Hint = {
   rest: HTMLSpanElement;
   onScreen: boolean;
   iconOnly: boolean;
+  /** Label box relative to its spot, measured once it is first drawn. */
+  size: { ox: number; oy: number; w: number; h: number } | null;
 };
 
 export type HintMode = {
@@ -320,7 +369,7 @@ export function createHints(getChars: () => string): HintMode {
       typedNode.className = "typed";
       const rest = node.appendChild(document.createElement("span"));
       root!.appendChild(node);
-      return { label: labels[i], el, node, typed: typedNode, rest, onScreen: true, iconOnly: isIconOnly(el, rect) };
+      return { label: labels[i], el, node, typed: typedNode, rest, onScreen: true, iconOnly: isIconOnly(el, rect), size: null };
     });
     document.body.appendChild(root);
     render();
@@ -334,19 +383,37 @@ export function createHints(getChars: () => string): HintMode {
   // Also runs on scroll and resize: the chat auto-scrolls while an agent
   // works, so hints follow their targets instead of closing.
   function render() {
+    const live: { h: Hint; spot: Spot }[] = [];
     for (const h of hints) {
       const rect = h.el.getBoundingClientRect();
       h.onScreen = h.el.isConnected && onScreen(rect);
       const show = h.onScreen && h.label.startsWith(typed);
       h.node.style.display = show ? "" : "none";
-      if (!show) continue;
+      if (!h.onScreen) continue;
       const spot = labelSpot(rect, h.iconOnly);
+      live.push({ h, spot });
+      if (!show) continue;
       h.node.className = spot.mode === "corner" ? "bbium-hint" : `bbium-hint ${spot.mode}`;
       h.node.style.left = `${spot.x}px`;
       h.node.style.top = `${spot.y}px`;
       h.typed.textContent = typed;
       h.rest.textContent = h.label.slice(typed.length);
     }
+    // One layout pass for labels drawn the first time. Hidden labels (filtered
+    // out by typed letters) keep their place in the layout, so the rest stay put.
+    for (const { h, spot } of live) {
+      if (h.size || h.node.style.display === "none") continue;
+      const r = h.node.getBoundingClientRect();
+      h.size = { ox: r.left - spot.x, oy: r.top - spot.y, w: r.width, h: r.height };
+    }
+    const sized = live.filter(({ h }) => h.size);
+    const boxes = sized.map(({ h, spot }) => ({ left: spot.x + h.size!.ox, top: spot.y + h.size!.oy, width: h.size!.w, height: h.size!.h }));
+    const moves = spreadLabels(boxes, { width: innerWidth, height: innerHeight });
+    sized.forEach(({ h, spot }, i) => {
+      if (!moves[i].dx && !moves[i].dy) return;
+      h.node.style.left = `${spot.x + moves[i].dx}px`;
+      h.node.style.top = `${spot.y + moves[i].dy}px`;
+    });
   }
 
   function scheduleRender() {
