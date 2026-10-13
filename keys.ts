@@ -69,10 +69,14 @@ export function routeKey(
 
 // Open menus and listboxes use letters for typeahead.
 const TYPEAHEAD = "[role=menu],[role=listbox]";
+// Contract with other plugins: a container with this attribute handles its own
+// keys (Kuri sidebar: j/k, G, gg, u). Plain keys typed inside it pass through.
+export const PASSTHROUGH = "[data-bbium-passthrough]";
 
 /** Focus is somewhere that consumes letters; looks through shadow roots. */
 function isTyping(e: KeyboardEvent): boolean {
   const target = e.composedPath()[0];
+  if (!e.metaKey && !e.ctrlKey && target instanceof Element && target.closest(PASSTHROUGH)) return true;
   let active = document.activeElement;
   while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
   return [target, active].some((el) => el instanceof Element && (isEditable(el) || !!el.closest(TYPEAHEAD)));

@@ -49,7 +49,9 @@ Hint styling uses CSS variables (`--bbium-bg`, `--bbium-fg`, `--bbium-font-size`
 
 ## How it works
 
-An app overlay (`experimental_appOverlay`, [`app.tsx`](app.tsx)) mounts once per bb window, renders nothing and installs one capture-phase key handler. It reads settings live with `useSettings`. Hint mode labels semantic controls (links, buttons, inputs, ARIA roles) and the outermost `cursor: pointer` elements that are visible and not covered. Activation sends the full pointer sequence, so Radix menus and selects open too. Hover-only controls (message actions, Snooze and Settle on sidebar threads) are shown and clickable while hints are open, and an icon-only button gets its label on its top edge, so you can see what each label does.
+An app overlay (`experimental_appOverlay`, [`app.tsx`](app.tsx)) mounts once per bb window, renders nothing and installs one capture-phase key handler. It reads settings live with `useSettings`. Hint mode labels semantic controls (links, buttons, inputs, ARIA roles) and the outermost `cursor: pointer` elements that are visible and not covered. Activation sends the full pointer sequence, so Radix menus and selects open too. Hover-only controls (message actions, Snooze and Settle on sidebar threads) are shown and clickable while hints are open, and an icon-only button gets its label on its top edge, so you can see what each label does. When two labels would cover each other (icon buttons side by side, a toggle inside a row), the later one moves the shortest distance to a free spot.
+
+Other plugins with their own keys: put `data-bbium-passthrough` on the container. While a key event comes from inside it, bbium ignores plain keys (no Cmd or Ctrl) and does not stop them. The Kuri sidebar uses this for its j/k navigation. Hints and scroll keys then work only after focus leaves that container.
 
 Limits: content inside the built-in Browser panel (an iframe) gets no hints. Hint detection depends on bb's DOM, so a bb update can change which elements get a label.
 
