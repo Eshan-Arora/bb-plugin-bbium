@@ -1,13 +1,14 @@
 // End-to-end smoke test against a running bb with bbium installed.
 //   BB_URL=http://localhost:38886 npm run e2e
 // BB_THREAD=/projects/<id>/threads/<id> adds scroll checks on a long thread.
-// Uses the system Chrome (playwright-core has no bundled browser).
+// Uses playwright-core chromium-headless-shell (not Chrome.app: its launch makes macOS reindex Shortcuts).
+// Missing: node node_modules/playwright-core/cli.js install chromium-headless-shell
 // It never clicks a button: it only focuses the composer by label. It types one
 // `f` into the composer and deletes it again.
 import { chromium } from "playwright-core";
 
 const url = process.env.BB_URL ?? "http://localhost:38886";
-const browser = await chromium.launch({ channel: "chrome" });
+const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const pageErrors = [];
 page.on("pageerror", (e) => pageErrors.push(e.message));
