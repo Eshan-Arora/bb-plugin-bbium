@@ -34,7 +34,8 @@ const leaveEditor = async () => {
 };
 
 try {
-  await page.goto(url, { waitUntil: "networkidle" });
+  // bb keeps a streaming connection open, so "networkidle" never fires; the fixed wait below covers lazy chunks.
+  await page.goto(url, { waitUntil: "load" });
   await page.waitForTimeout(2500);
   // bb may autofocus the composer on load; a bare `i` would then land in the draft.
   await page.evaluate(() => document.activeElement?.blur?.());
@@ -95,7 +96,7 @@ try {
   check("gg is handled, not typed", (await hints()) === 0 && (await composerText()) === draft);
 
   if (process.env.BB_THREAD) {
-    await page.goto(new URL(process.env.BB_THREAD, url).href, { waitUntil: "networkidle" });
+    await page.goto(new URL(process.env.BB_THREAD, url).href, { waitUntil: "load" });
     await page.waitForTimeout(3000);
     await leaveEditor();
     const scrollTop = () =>
