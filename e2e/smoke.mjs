@@ -66,7 +66,7 @@ try {
     // Focus is still in the composer: remove the test `f` from the real draft.
     await page.keyboard.press("Backspace");
   }
-  check("f in the composer types, no hints", (await hints()) === 0 && typed === before + "f", JSON.stringify({ before, typed, h: await hints() }));
+  check("f in the composer types, no hints", (await hints()) === 0 && typed === `${before}f`, JSON.stringify({ before, typed, h: await hints() }));
 
   // Label of the composer: hints sit at the target's top-left corner.
   await leaveEditor();

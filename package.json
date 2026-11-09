@@ -18,9 +18,13 @@
     "shortcuts"
   ],
   "scripts": {
+    "lint": "biome lint .",
     "test": "node --test hints.test.ts keys.test.ts settings.test.ts",
     "typecheck": "tsc -p .",
-    "build": "bb plugin build .",
+    "build": "bb plugin build",
+    "knip": "knip",
+    "check:sdk": "bb plugin types --check",
+    "gate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run knip && npm run check:sdk && npm run e2e",
     "verify": "npm run typecheck && npm test && npm run build",
     "e2e": "node e2e/smoke.mjs"
   },
@@ -42,11 +46,13 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
     "@get-bb/plugin-sdk": "0.6.132",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "hono": "^4.13.13",
+    "knip": "^6.44.2",
     "playwright-core": "^1.64.0",
     "typescript": "^5.7.0"
   }

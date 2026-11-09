@@ -55,7 +55,7 @@ export function rememberScrollTarget(target: EventTarget | null): void {
   preferred = target instanceof Element ? scrollableAncestor(target) : null;
 }
 
-export function scrollTarget(): HTMLElement | null {
+function scrollTarget(): HTMLElement | null {
   if (usable(preferred)) return preferred;
   if (!usable(cached)) cached = largestScrollable();
   return cached;
@@ -94,20 +94,28 @@ export function scrollBy(command: ScrollCommand, step: number, repeat: boolean):
   const el = scrollTarget();
   if (!el) return;
   if (command === "up" || command === "halfUp" || command === "top") releaseStick(el);
-  if (command === "top") return pinTop(el);
+  if (command === "top") {
+    pinTop(el);
+    return;
+  }
   // Smooth animations stack badly under key repeat, so a held key jumps.
   const behavior: ScrollBehavior = repeat ? "auto" : "smooth";
   const half = Math.round(el.clientHeight / 2);
   switch (command) {
     case "down":
-      return el.scrollBy({ top: step, behavior });
+      el.scrollBy({ top: step, behavior });
+      break;
     case "up":
-      return el.scrollBy({ top: -step, behavior });
+      el.scrollBy({ top: -step, behavior });
+      break;
     case "halfDown":
-      return el.scrollBy({ top: half, behavior });
+      el.scrollBy({ top: half, behavior });
+      break;
     case "halfUp":
-      return el.scrollBy({ top: -half, behavior });
+      el.scrollBy({ top: -half, behavior });
+      break;
     case "bottom":
-      return el.scrollTo({ top: el.scrollHeight, behavior });
+      el.scrollTo({ top: el.scrollHeight, behavior });
+      break;
   }
 }

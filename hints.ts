@@ -359,19 +359,20 @@ export function createHints(getChars: () => string): HintMode {
     const targets = collectTargets();
     if (targets.length === 0) return exit();
     const labels = makeLabels(targets.length, getChars());
-    root = document.createElement("div");
-    root.setAttribute(ROOT_ATTR, "");
-    root.setAttribute("aria-hidden", "true");
+    const box = document.createElement("div");
+    root = box;
+    box.setAttribute(ROOT_ATTR, "");
+    box.setAttribute("aria-hidden", "true");
     hints = targets.map(({ el, rect }, i) => {
       const node = document.createElement("span");
       node.className = "bbium-hint";
       const typedNode = node.appendChild(document.createElement("span"));
       typedNode.className = "typed";
       const rest = node.appendChild(document.createElement("span"));
-      root!.appendChild(node);
+      box.appendChild(node);
       return { label: labels[i], el, node, typed: typedNode, rest, onScreen: true, iconOnly: isIconOnly(el, rect), size: null };
     });
-    document.body.appendChild(root);
+    document.body.appendChild(box);
     render();
     session = new AbortController();
     const { signal } = session;
@@ -406,8 +407,8 @@ export function createHints(getChars: () => string): HintMode {
       const r = h.node.getBoundingClientRect();
       h.size = { ox: r.left - spot.x, oy: r.top - spot.y, w: r.width, h: r.height };
     }
-    const sized = live.filter(({ h }) => h.size);
-    const boxes = sized.map(({ h, spot }) => ({ left: spot.x + h.size!.ox, top: spot.y + h.size!.oy, width: h.size!.w, height: h.size!.h }));
+    const sized = live.flatMap(({ h, spot }) => (h.size ? [{ h, spot, size: h.size }] : []));
+    const boxes = sized.map(({ spot, size }) => ({ left: spot.x + size.ox, top: spot.y + size.oy, width: size.w, height: size.h }));
     const moves = spreadLabels(boxes, { width: innerWidth, height: innerHeight });
     sized.forEach(({ h, spot }, i) => {
       if (!moves[i].dx && !moves[i].dy) return;
@@ -434,7 +435,8 @@ export function createHints(getChars: () => string): HintMode {
       return render();
     }
     if (step.kind === "activate") {
-      const el = live.find((h) => h.label === step.label)!.el;
+      const el = live.find((h) => h.label === step.label)?.el;
+      if (!el) return;
       // Activate first: a revealed control fails the live check once hidden again.
       activate(el);
       exit();

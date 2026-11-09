@@ -30,7 +30,7 @@ export type Config = {
 const NORMAL_KEYS = "fijkdugG";
 
 /** Unique normal-mode keys from the setting; anything else is dropped. */
-export function parseDisabledKeys(raw: unknown): string {
+function parseDisabledKeys(raw: unknown): string {
   if (typeof raw !== "string") return "";
   return [...new Set(raw)].filter((c) => NORMAL_KEYS.includes(c)).join("");
 }
@@ -92,7 +92,7 @@ export function routeKey(
 const TYPEAHEAD = "[role=menu],[role=listbox]";
 // Contract with other plugins: a container with this attribute handles its own
 // keys (Kuri sidebar: j/k, G, gg, u). Plain keys typed inside it pass through.
-export const PASSTHROUGH = "[data-bbium-passthrough]";
+const PASSTHROUGH = "[data-bbium-passthrough]";
 
 /** Focus is somewhere that consumes letters; looks through shadow roots. */
 function isTyping(e: KeyboardEvent): boolean {

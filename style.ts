@@ -7,7 +7,7 @@
 export const ROOT_ATTR = "data-bbium-root";
 const ROOT = `[${ROOT_ATTR}]`;
 
-export const THEMES = ["keycap", "vimium", "bb", "mono"] as const;
+const THEMES = ["keycap", "vimium", "bb", "mono"] as const;
 export type Theme = (typeof THEMES)[number];
 
 export function parseTheme(raw: unknown): Theme {
@@ -53,7 +53,7 @@ const THEME_VARS: Record<Theme, string> = {
 
 // Insert mode: while the composer has focus, keys type text and `f` is a
 // letter. A ring and an INSERT badge on the composer make that visible.
-export const COMPOSER = "[data-promptbox]";
+const COMPOSER = "[data-promptbox]";
 
 const INSERT = `
 ${COMPOSER}:focus-within {
