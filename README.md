@@ -63,7 +63,6 @@ npm install
 bb plugin install .   # path install
 bb plugin dev         # rebuild and reload on save
 npm run verify        # typecheck, tests, build
-npm run e2e:hints     # standalone wrapped-link regression tests (needs Playwright Chromium)
 npm run e2e           # smoke test against a running bb (BB_URL, default http://localhost:38886; BB_THREAD=<thread path> adds scroll checks; needs Chrome)
 ```
 
