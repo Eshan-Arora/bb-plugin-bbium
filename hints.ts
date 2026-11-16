@@ -127,25 +127,42 @@ function onScreen(rect: DOMRect): boolean {
   return rect.width >= 2 && rect.height >= 2 && rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth;
 }
 
-function isUncovered(el: HTMLElement, rect: DOMRect): boolean {
-  // Occlusion check: a modal or overlay above the element wins the hit test.
-  const x = Math.min(Math.max(rect.left + rect.width / 2, 0), innerWidth - 1);
-  const y = Math.min(Math.max(rect.top + rect.height / 2, 0), innerHeight - 1);
-  // The hit must land on the element itself: an ancestor hit means the element
-  // is hidden, inert (pointer-events: none) or under a modal backdrop.
-  const hit = document.elementFromPoint(x, y);
-  return !!hit && el.contains(hit);
+/** A visible text fragment, rather than the union box of a wrapped inline. */
+function visibleRect(el: HTMLElement, clip?: Clip): DOMRect | null {
+  if (!clip) {
+    clip = { top: 0, left: 0, bottom: innerHeight, right: innerWidth };
+    // Render and activation also need the visible part of scroll containers.
+    for (let child: HTMLElement = el, parent = el.parentElement; parent; child = parent, parent = parent.parentElement) {
+      if (getComputedStyle(child).position === "fixed") break;
+      const style = getComputedStyle(parent);
+      const r = parent.getBoundingClientRect();
+      if (style.overflowX !== "visible") {
+        clip.left = Math.max(clip.left, r.left);
+        clip.right = Math.min(clip.right, r.right);
+      }
+      if (style.overflowY !== "visible") {
+        clip.top = Math.max(clip.top, r.top);
+        clip.bottom = Math.min(clip.bottom, r.bottom);
+      }
+    }
+  }
+  // A wrapped inline's bounding-box center can lie between its text fragments.
+  // Clip each fragment before hit-testing, so a partially visible line works too.
+  for (const r of el.getClientRects()) {
+    const left = Math.max(r.left, clip.left, 0);
+    const top = Math.max(r.top, clip.top, 0);
+    const right = Math.min(r.right, clip.right, innerWidth);
+    const bottom = Math.min(r.bottom, clip.bottom, innerHeight);
+    if (right <= left || bottom <= top) continue;
+    const hit = document.elementFromPoint((left + right) / 2, (top + bottom) / 2);
+    // An ancestor hit is still rejected: overlays and inert controls stay out.
+    if (hit && el.contains(hit)) return new DOMRect(left, top, right - left, bottom - top);
+  }
+  return null;
 }
 
 function isDisabled(el: HTMLElement): boolean {
   return (el as HTMLButtonElement).disabled === true || el.getAttribute("aria-disabled") === "true";
-}
-
-/** Still worth clicking: attached, enabled, on screen and not covered. */
-function isLive(el: HTMLElement): boolean {
-  if (!el.isConnected || isDisabled(el)) return false;
-  const rect = el.getBoundingClientRect();
-  return onScreen(rect) && isUncovered(el, rect);
 }
 
 type Clip = { top: number; left: number; bottom: number; right: number };
@@ -187,10 +204,10 @@ function collectTargets(): { el: HTMLElement; rect: DOMRect }[] {
         ? !isDisabled(el)
         : // cursor is inherited, so only take the top of each pointer region,
           // and skip regions inside a semantic clickable.
-          pointer && !parentPointer && !inClickable) &&
-      isUncovered(el, rect)
+          pointer && !parentPointer && !inClickable)
     ) {
-      found.push({ el, rect });
+      const visible = visibleRect(el, clip);
+      if (visible) found.push({ el, rect: visible });
     }
     let childClip = clip;
     if (style.overflowX !== "visible" || style.overflowY !== "visible") {
@@ -262,14 +279,15 @@ function revealHoverControls(): () => void {
 
 function activate(el: HTMLElement): void {
   // The page may have changed since the labels were drawn.
-  if (!isLive(el)) return;
+  if (!el.isConnected || isDisabled(el)) return;
+  const rect = visibleRect(el);
+  if (!rect) return;
   if (isEditable(el)) {
     el.focus();
     return;
   }
   // Radix triggers (menus, selects) open on pointerdown, not click, so send
   // the full pointer sequence instead of el.click().
-  const rect = el.getBoundingClientRect();
   const init = {
     bubbles: true,
     cancelable: true,
@@ -386,11 +404,11 @@ export function createHints(getChars: () => string): HintMode {
   function render() {
     const live: { h: Hint; spot: Spot }[] = [];
     for (const h of hints) {
-      const rect = h.el.getBoundingClientRect();
-      h.onScreen = h.el.isConnected && onScreen(rect);
+      const rect = h.el.isConnected ? visibleRect(h.el) : null;
+      h.onScreen = rect !== null;
       const show = h.onScreen && h.label.startsWith(typed);
       h.node.style.display = show ? "" : "none";
-      if (!h.onScreen) continue;
+      if (!rect) continue;
       const spot = labelSpot(rect, h.iconOnly);
       live.push({ h, spot });
       if (!show) continue;
